@@ -33,6 +33,7 @@ ts_config.setup {
     "ruby",
     "scheme",
     "yaml",
+    "json",
     "java",
     "go",
   },
@@ -54,6 +55,7 @@ vim.treesitter.language.register('markdown', { 'md' })
 vim.treesitter.language.register('ruby', { 'rb' })
 vim.treesitter.language.register('scheme', { 'scm' })
 vim.treesitter.language.register('yaml', { 'yml' })
+vim.treesitter.language.register('json', { 'json' })
 vim.treesitter.language.register('go', { 'go' })
 
 dofile("plugin/init.lua") -- get the Treewalker command present

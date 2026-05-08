@@ -1,0 +1,81 @@
+{
+  "appConfig": {
+    "name": "SampleApp",
+    "version": "1.2.3",
+    "debug": true,
+    "maxUsers": 1000,
+    "features": [
+      "authentication",
+      "payment",
+      "notifications"
+    ],
+    "database": {
+      "host": "localhost",
+      "port": 5432,
+      "username": "admin",
+      "password": "password123",
+      "options": {
+        "poolSize": 20,
+        "reconnect": true
+      }
+    },
+    "emptyValue": null,
+    "isActive": true,
+    "colors": {
+      "red": null,
+      "green": null,
+      "blue": null
+    }
+  },
+  "users": [
+    {
+      "id": 1001,
+      "name": "Alice",
+      "roles": ["admin", "user"],
+      "metadata": {
+        "lastLogin": "2024-05-15",
+        "preferences": {
+          "theme": "dark",
+          "notifications": true
+        }
+      }
+    },
+    {
+      "id": 1002,
+      "name": "Bob",
+      "roles": [
+        "user"
+      ],
+      "metadata": {
+        "lastLogin": "2024-05-15",
+        "preferences": {
+          "theme": "dark",
+          "notifications": true
+        }
+      }
+    }
+  ],
+  "complexKeys": {
+    "key with ? and :": "This is the value",
+    "[\"tuple\", \"key\"]": "Value for tuple key",
+    "multi-line\\ncomplex\\nkey": "Value for multi-line key"
+  },
+  "misc": {
+    "emptyList": [],
+    "emptyMap": {},
+    "nestedEmpty": {
+      "list": [],
+      "map": {}
+    }
+  },
+  "mixedList": [
+    123,
+    "string item",
+    true,
+    null,
+    {
+      "key1": "val1",
+      "key2": "val2"
+    }
+  ]
+}
