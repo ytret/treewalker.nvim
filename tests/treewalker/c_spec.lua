@@ -12,13 +12,13 @@ describe("In a c file:", function()
   h.ensure_has_parser("c")
 
   it("Moves around", function()
-    vim.fn.cursor(46, 1)
+    vim.fn.cursor(51, 1)
     tw.move_down()
-    h.assert_cursor_at(50, 1, "int main")
-    tw.move_down()
-    h.assert_cursor_at(64, 1)
+    h.assert_cursor_at(55, 1, "int main")
     tw.move_down()
     h.assert_cursor_at(69, 1)
+    tw.move_down()
+    h.assert_cursor_at(74, 1)
   end)
 
   it("swaps right, when cursor is inside a string, the whole string", function()
@@ -36,39 +36,39 @@ describe("In a c file:", function()
   end)
 
   it("swaps down on next line bracket structured functions", function()
-    local first_block = lines.get_lines(63, 67)
-    local second_block = lines.get_lines(69, 72)
-    vim.fn.cursor(64, 1)
+    local first_block = lines.get_lines(68, 72)
+    local second_block = lines.get_lines(74, 77)
+    vim.fn.cursor(69, 1)
     tw.swap_down()
-    assert.same(first_block, lines.get_lines(68, 72))
-    assert.same(second_block, lines.get_lines(63, 66))
+    assert.same(first_block, lines.get_lines(73, 77))
+    assert.same(second_block, lines.get_lines(68, 71))
   end)
 
   it("swaps up on next line bracket structured functions", function()
-    local first_block = lines.get_lines(63, 67)
-    local second_block = lines.get_lines(69, 72)
-    vim.fn.cursor(69, 1)
+    local first_block = lines.get_lines(68, 72)
+    local second_block = lines.get_lines(74, 77)
+    vim.fn.cursor(74, 1)
     tw.swap_up()
-    assert.same(first_block, lines.get_lines(68, 72))
-    assert.same(second_block, lines.get_lines(63, 66))
+    assert.same(first_block, lines.get_lines(73, 77))
+    assert.same(second_block, lines.get_lines(68, 71))
   end)
 
   it("highlights the whole node on move_out", function()
-    vim.fn.cursor(26, 1)
+    vim.fn.cursor(31, 1)
     tw.move_out()
-    h.assert_highlighted(26, 1, 33, 1)
+    h.assert_highlighted(31, 1, 38, 1)
   end)
 
   it("highlights the whole node on move_down", function()
     vim.fn.cursor(11, 1)
     tw.move_down()
-    h.assert_highlighted(26, 1, 33, 1)
+    h.assert_highlighted(26, 1, 28, 1)
   end)
 
   it("highlights the whole node on move_up", function()
-    vim.fn.cursor(36, 1)
+    vim.fn.cursor(41, 1)
     tw.move_up()
-    h.assert_highlighted(26, 1, 33, 1)
+    h.assert_highlighted(31, 1, 38, 1)
   end)
   describe("scope_confined", function()
     before_each(function()
@@ -113,15 +113,15 @@ describe("In a c file:", function()
   end)
 
   it("moves right between numeric arguments in a function call", function()
-    vim.fn.cursor(51, 40) -- the '3' in 12345
+    vim.fn.cursor(56, 40) -- the '3' in 12345
     tw.move_right_sibling()
-    h.assert_cursor_at(51, 45) -- start of 1000.00f
+    h.assert_cursor_at(56, 45) -- start of 1000.00f
   end)
 
   it("moves left between numeric arguments in a function call", function()
-    vim.fn.cursor(51, 47) -- the '0' in 1000.00f
+    vim.fn.cursor(56, 47) -- the '0' in 1000.00f
     tw.move_left_sibling()
-    h.assert_cursor_at(51, 38) -- start of 12345
+    h.assert_cursor_at(56, 38) -- start of 12345
   end)
 
   it("does not move right from the last argument", function()
@@ -130,10 +130,10 @@ describe("In a c file:", function()
     h.assert_cursor_at(14, 26) -- stays at "two"
   end)
 
-  it("does not move left from the first argument", function()
+  it("moves left from the first argument to the function name", function()
     vim.fn.cursor(14, 17) -- the 'o' in "one"
     tw.move_left_sibling()
-    h.assert_cursor_at(14, 17) -- stays at "one"
+    h.assert_cursor_at(14, 9) -- start of "printf"
   end)
 
   it("moves right from a function name to its first argument", function()
@@ -149,26 +149,50 @@ describe("In a c file:", function()
   end)
 
   it("moves right from a function definition to its first parameter", function()
-    vim.fn.cursor(46, 1) -- 'v' in "void printAccountInfo"
+    vim.fn.cursor(51, 1) -- 'v' in "void printAccountInfo"
     tw.move_right_sibling()
-    h.assert_cursor_at(46, 23) -- "Account*"
+    h.assert_cursor_at(51, 23) -- "Account*"
   end)
 
   it("moves left from a function definition to its last parameter", function()
-    vim.fn.cursor(46, 1) -- 'v' in "void printAccountInfo"
+    vim.fn.cursor(51, 1) -- 'v' in "void printAccountInfo"
     tw.move_left_sibling()
-    h.assert_cursor_at(46, 23) -- "Account*"
+    h.assert_cursor_at(51, 23) -- "Account*"
   end)
 
   it("moves between parameters in a function with multiple parameters", function()
-    vim.fn.cursor(36, 1) -- 'v' in "void withdraw"
+    vim.fn.cursor(41, 1) -- 'v' in "void withdraw"
     tw.move_right_sibling()
-    h.assert_cursor_at(36, 15) -- "Account* account"
+    h.assert_cursor_at(41, 15) -- "Account* account"
     tw.move_right_sibling()
-    h.assert_cursor_at(36, 33) -- "float amount"
+    h.assert_cursor_at(41, 33) -- "float amount"
     tw.move_left_sibling()
-    h.assert_cursor_at(36, 15) -- back to "Account* account"
+    h.assert_cursor_at(41, 15) -- back to "Account* account"
     tw.move_left_sibling()
-    h.assert_cursor_at(36, 15) -- stays at first param
+    h.assert_cursor_at(41, 6) -- exits to function name "withdraw"
+  end)
+
+  it("moves right from static void to its first parameter", function()
+    vim.fn.cursor(26, 1) -- the 's' in "static"
+    tw.move_right_sibling()
+    h.assert_cursor_at(26, 17) -- "int x"
+  end)
+
+  it("moves left from the first parameter to the function name", function()
+    vim.fn.cursor(26, 17) -- the 'i' in "int x"
+    tw.move_left_sibling()
+    h.assert_cursor_at(26, 13) -- the 'f' in "foo"
+  end)
+
+  it("does not move right from the last parameter", function()
+    vim.fn.cursor(26, 24) -- the 'i' in "int y"
+    tw.move_right_sibling()
+    h.assert_cursor_at(26, 24) -- stays at "int y"
+  end)
+
+  it("moves left from the last parameter to the previous parameter", function()
+    vim.fn.cursor(26, 24) -- the 'i' in "int y"
+    tw.move_left_sibling()
+    h.assert_cursor_at(26, 17) -- "int x"
   end)
 end)

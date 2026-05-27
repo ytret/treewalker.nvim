@@ -22,6 +22,11 @@ Account* createAccount(int accountNumber, float initialBalance) {
     return newAccount;
 }
 
+// Static function with multiple parameters
+static void foo(int x, int y) {
+    printf("%d %d\n", x, y);
+}
+
 // Function to deposit money into an account
 void deposit(Account* account, float amount) {
     if (amount > 0.0f) {
