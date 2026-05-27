@@ -147,4 +147,28 @@ describe("In a c file:", function()
     tw.move_left_sibling()
     h.assert_cursor_at(14, 25) -- start of "two"
   end)
+
+  it("moves right from a function definition to its first parameter", function()
+    vim.fn.cursor(46, 1) -- 'v' in "void printAccountInfo"
+    tw.move_right_sibling()
+    h.assert_cursor_at(46, 23) -- "Account*"
+  end)
+
+  it("moves left from a function definition to its last parameter", function()
+    vim.fn.cursor(46, 1) -- 'v' in "void printAccountInfo"
+    tw.move_left_sibling()
+    h.assert_cursor_at(46, 23) -- "Account*"
+  end)
+
+  it("moves between parameters in a function with multiple parameters", function()
+    vim.fn.cursor(36, 1) -- 'v' in "void withdraw"
+    tw.move_right_sibling()
+    h.assert_cursor_at(36, 15) -- "Account* account"
+    tw.move_right_sibling()
+    h.assert_cursor_at(36, 33) -- "float amount"
+    tw.move_left_sibling()
+    h.assert_cursor_at(36, 15) -- back to "Account* account"
+    tw.move_left_sibling()
+    h.assert_cursor_at(36, 15) -- stays at first param
+  end)
 end)

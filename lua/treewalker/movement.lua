@@ -158,23 +158,29 @@ local function find_first_list_item(node)
 end
 
 --- Walk down into a node's subtree to find a list container and return
---- its last named child. Handles move_left_sibling from a function name.
+--- its last named child. Uses forward DFS to find the first list container
+--- (nearest to root, like parameter_list) rather than the last in the file
+--- (like argument_list deep in the function body).
 ---@param node TSNode
 ---@return TSNode | nil
 local function find_last_list_item(node)
-  local function dfs(n)
+  local function find_first_list(n)
     if not n then return nil end
     if LIST_CONTAINER_TYPES[n:type()] then
-      local count = n:named_child_count()
-      if count == 0 then return nil end
-      return n:named_child(count - 1)
+      return n
     end
-    for i = n:named_child_count() - 1, 0, -1 do
-      local result = dfs(n:named_child(i))
+    for i = 0, n:named_child_count() - 1, 1 do
+      local result = find_first_list(n:named_child(i))
       if result then return result end
     end
   end
-  return dfs(node)
+  local list = find_first_list(node)
+  if list then
+    local count = list:named_child_count()
+    if count > 0 then
+      return list:named_child(count - 1)
+    end
+  end
 end
 
 --- Walk up the parent chain (bounded to the same row) to find a node
@@ -223,6 +229,7 @@ end
 local CALL_EXPR_TYPES = {
   call_expression = true,
   function_declarator = true,
+  function_definition = true,
 }
 
 ---@return nil

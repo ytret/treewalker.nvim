@@ -412,6 +412,7 @@ end
 local CALL_BOUNDARY_TYPES = {
   call_expression = true,
   function_declarator = true,
+  function_definition = true,
 }
 
 ---@param node TSNode
