@@ -135,4 +135,16 @@ describe("In a c file:", function()
     tw.move_left_sibling()
     h.assert_cursor_at(14, 17) -- stays at "one"
   end)
+
+  it("moves right from a function name to its first argument", function()
+    vim.fn.cursor(14, 9) -- the 'p' in printf
+    tw.move_right_sibling()
+    h.assert_cursor_at(14, 16) -- start of "one"
+  end)
+
+  it("moves left from a function name to its last argument", function()
+    vim.fn.cursor(14, 9) -- the 'p' in printf
+    tw.move_left_sibling()
+    h.assert_cursor_at(14, 25) -- start of "two"
+  end)
 end)

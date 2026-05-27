@@ -138,6 +138,45 @@ local LIST_CONTAINER_TYPES = {
   parameters = true,
 }
 
+--- Walk down into a node's subtree to find a list container and return
+--- its first named child. This handles the case where cursor is on a
+--- function name (e.g. "printf") and we want to jump to the first argument.
+---@param node TSNode
+---@return TSNode | nil
+local function find_first_list_item(node)
+  local function dfs(n)
+    if not n then return nil end
+    if LIST_CONTAINER_TYPES[n:type()] then
+      return n:named_child(0)
+    end
+    for i = 0, n:named_child_count() - 1, 1 do
+      local result = dfs(n:named_child(i))
+      if result then return result end
+    end
+  end
+  return dfs(node)
+end
+
+--- Walk down into a node's subtree to find a list container and return
+--- its last named child. Handles move_left_sibling from a function name.
+---@param node TSNode
+---@return TSNode | nil
+local function find_last_list_item(node)
+  local function dfs(n)
+    if not n then return nil end
+    if LIST_CONTAINER_TYPES[n:type()] then
+      local count = n:named_child_count()
+      if count == 0 then return nil end
+      return n:named_child(count - 1)
+    end
+    for i = n:named_child_count() - 1, 0, -1 do
+      local result = dfs(n:named_child(i))
+      if result then return result end
+    end
+  end
+  return dfs(node)
+end
+
 --- Walk up the parent chain (bounded to the same row) to find a node
 --- that has a named sibling. This handles nested structures like C
 --- parameter_declarations where the cursor lands on an identifier nested
@@ -179,12 +218,24 @@ local function jump_to_node(node)
   end
 end
 
+-- Node types where lateral navigation should descend into their
+-- argument/parameter list rather than looking for siblings.
+local CALL_EXPR_TYPES = {
+  call_expression = true,
+  function_declarator = true,
+}
+
 ---@return nil
 function M.move_right_sibling()
   local current_node = anchor.current_lateral_node()
   if not current_node then return end
 
-  local target_node = anchor.next_sibling(current_node)
+  local target_node
+  if CALL_EXPR_TYPES[current_node:type()] then
+    target_node = find_first_list_item(current_node)
+  end
+  target_node = target_node
+    or anchor.next_sibling(current_node)
     or find_sibling_upwards(current_node, "next")
   if not target_node then return end
 
@@ -202,7 +253,12 @@ function M.move_left_sibling()
   local current_node = anchor.current_lateral_node()
   if not current_node then return end
 
-  local target_node = anchor.prev_sibling(current_node)
+  local target_node
+  if CALL_EXPR_TYPES[current_node:type()] then
+    target_node = find_last_list_item(current_node)
+  end
+  target_node = target_node
+    or anchor.prev_sibling(current_node)
     or find_sibling_upwards(current_node, "prev")
   if not target_node then return end
 

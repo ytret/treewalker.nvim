@@ -220,31 +220,6 @@ function M.current()
   return current_anchor
 end
 
----@param node TSNode
----@return TSNode
-local function normalize_lateral_node(node)
-  local lateral = M.get_highest_string_node(node) or node
-  local iter = lateral:parent()
-
-  while iter and nodes.have_same_srow(lateral, iter) and nodes.have_same_scol(lateral, iter) do
-    if classify.is_highlight_target(iter) then
-      lateral = iter
-    end
-    iter = iter:parent()
-  end
-
-  return lateral
-end
-
----@return TSNode
-function M.current_lateral_node()
-  local current = vim.treesitter.get_node({ ignore_injections = false })
-  if not current then
-    error("Treewalker: Treesitter node not found under cursor. Missing parser?")
-  end
-  return normalize_lateral_node(current)
-end
-
 -- Convenience for give me back next sibling of a potentially nil node
 ---@param node TSNode | nil
 ---@return TSNode | nil
@@ -428,6 +403,45 @@ function M.get_highest_string_node(node)
   end
 
   return highest
+end
+
+-- Node types that act as lateral navigation boundaries.
+-- Sibling navigation should stay within these rather than merging into
+-- the parent statement (e.g., cursor on "printf" should navigate args,
+-- not the next statement).
+local CALL_BOUNDARY_TYPES = {
+  call_expression = true,
+  function_declarator = true,
+}
+
+---@param node TSNode
+---@return TSNode
+local function normalize_lateral_node(node)
+  local lateral = M.get_highest_string_node(node) or node
+  local iter = lateral:parent()
+
+  while iter and nodes.have_same_srow(lateral, iter) and nodes.have_same_scol(lateral, iter) do
+    if classify.is_highlight_target(iter) then
+      lateral = iter
+    end
+
+    if CALL_BOUNDARY_TYPES[iter:type()] then
+      break
+    end
+
+    iter = iter:parent()
+  end
+
+  return lateral
+end
+
+---@return TSNode
+function M.current_lateral_node()
+  local current = vim.treesitter.get_node({ ignore_injections = false })
+  if not current then
+    error("Treewalker: Treesitter node not found under cursor. Missing parser?")
+  end
+  return normalize_lateral_node(current)
 end
 
 return M
