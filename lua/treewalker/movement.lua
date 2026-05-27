@@ -232,51 +232,6 @@ local CALL_EXPR_TYPES = {
   function_definition = true,
 }
 
---- Walk up the parent chain to find an ancestor that matches
---- CALL_EXPR_TYPES. This handles edge cases like `static void`
---- where `normalize_lateral_node` may return a wrapper node
---- that isn't a call-like type (e.g. `declaration`).
----@param node TSNode
----@return TSNode | nil
-local function find_call_like_ancestor(node)
-  local iter = node:parent()
-  while iter do
-    if CALL_EXPR_TYPES[iter:type()] then
-      return iter
-    end
-    iter = iter:parent()
-  end
-end
-
---- When we can't find a previous sibling inside a list container,
---- exit back to the call-like parent's function identifier.
---- This handles Prev from the first argument/parameter.
----@param node TSNode
----@return TSNode | nil
-local function find_list_exit(node)
-  local function find_fn_name(n)
-    if n:type() == "identifier" then
-      return n
-    end
-    for i = 0, n:named_child_count() - 1, 1 do
-      local result = find_fn_name(n:named_child(i))
-      if result then return result end
-    end
-  end
-
-  local iter = node:parent()
-  while iter do
-    if LIST_CONTAINER_TYPES[iter:type()] then
-      local parent = iter:parent()
-      if parent and CALL_EXPR_TYPES[parent:type()] then
-        return find_fn_name(parent) or parent
-      end
-      break
-    end
-    iter = iter:parent()
-  end
-end
-
 ---@return nil
 function M.move_right_sibling()
   local current_node = anchor.current_lateral_node()
@@ -289,28 +244,6 @@ function M.move_right_sibling()
   target_node = target_node
     or anchor.next_sibling(current_node)
     or find_sibling_upwards(current_node, "next")
-
-  -- Fallback: if current node wraps a call-like ancestor (e.g. `static` in
-  -- `static void`) and isn't already inside a list, descend from that
-  -- ancestor into its list container.
-  if not target_node then
-    local inside_list = false
-    local iter = current_node:parent()
-    while iter do
-      if LIST_CONTAINER_TYPES[iter:type()] then
-        inside_list = true
-        break
-      end
-      iter = iter:parent()
-    end
-    if not inside_list then
-      local call_like = find_call_like_ancestor(current_node)
-      if call_like then
-        target_node = find_first_list_item(call_like)
-      end
-    end
-  end
-
   if not target_node then return end
 
   if confinement.should_confine(current_node, target_node) then
@@ -334,28 +267,6 @@ function M.move_left_sibling()
   target_node = target_node
     or anchor.prev_sibling(current_node)
     or find_sibling_upwards(current_node, "prev")
-    or find_list_exit(current_node)
-
-  -- Fallback: if at a dead end outside any list, try descending from a
-  -- call-like ancestor.
-  if not target_node then
-    local inside_list = false
-    local iter = current_node:parent()
-    while iter do
-      if LIST_CONTAINER_TYPES[iter:type()] then
-        inside_list = true
-        break
-      end
-      iter = iter:parent()
-    end
-    if not inside_list then
-      local call_like = find_call_like_ancestor(current_node)
-      if call_like then
-        target_node = find_last_list_item(call_like)
-      end
-    end
-  end
-
   if not target_node then return end
 
   if confinement.should_confine(current_node, target_node) then
