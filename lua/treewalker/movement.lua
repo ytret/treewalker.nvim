@@ -1,5 +1,6 @@
 local anchor = require "treewalker.anchor"
 local markdown_anchor = require "treewalker.markdown.anchor"
+local nodes = require "treewalker.nodes"
 local operations = require "treewalker.operations"
 local confinement = require "treewalker.confinement"
 local util = require "treewalker.util"
@@ -125,6 +126,93 @@ function M.move_down()
   if not neighbor then
     add_jumplist_for_move('move_down')
   end
+end
+
+-- Node types that act as list containers. When walking up to find a sibling,
+-- we stop at these boundaries to avoid escaping the current list.
+local LIST_CONTAINER_TYPES = {
+  argument_list = true,
+  parameter_list = true,
+  template_argument_list = true,
+  template_parameter_list = true,
+  parameters = true,
+}
+
+--- Walk up the parent chain (bounded to the same row) to find a node
+--- that has a named sibling. This handles nested structures like C
+--- parameter_declarations where the cursor lands on an identifier nested
+--- several levels deep without crossing list boundaries.
+---@param node TSNode
+---@param direction "next" | "prev"
+---@return TSNode | nil
+local function find_sibling_upwards(node, direction)
+  local iter = node:parent()
+  while iter and nodes.have_same_srow(node, iter) do
+    if LIST_CONTAINER_TYPES[iter:type()] then
+      break
+    end
+    local sibling = direction == "next"
+      and anchor.next_sibling(iter)
+      or anchor.prev_sibling(iter)
+    if sibling then
+      return sibling
+    end
+    iter = iter:parent()
+  end
+end
+
+--- Jump to a node at its start column (for same-line sibling navigation)
+--- rather than the first non-whitespace of the row.
+---@param node TSNode
+local function jump_to_node(node)
+  local row = nodes.get_srow(node)
+  local col = nodes.get_scol(node)
+  vim.fn.cursor(row, col)
+
+  local opts = require("treewalker").opts
+  local range = nodes.range(node)
+
+  if opts.select then
+    operations.select(range)
+  elseif opts.highlight then
+    operations.highlight(range, opts.highlight_duration, opts.highlight_group)
+  end
+end
+
+---@return nil
+function M.move_right_sibling()
+  local current_node = anchor.current_lateral_node()
+  if not current_node then return end
+
+  local target_node = anchor.next_sibling(current_node)
+    or find_sibling_upwards(current_node, "next")
+  if not target_node then return end
+
+  if confinement.should_confine(current_node, target_node) then
+    return
+  end
+
+  add_jumplist_for_move('move_right_sibling')
+  jump_to_node(target_node)
+  add_jumplist_for_move('move_right_sibling')
+end
+
+---@return nil
+function M.move_left_sibling()
+  local current_node = anchor.current_lateral_node()
+  if not current_node then return end
+
+  local target_node = anchor.prev_sibling(current_node)
+    or find_sibling_upwards(current_node, "prev")
+  if not target_node then return end
+
+  if confinement.should_confine(current_node, target_node) then
+    return
+  end
+
+  add_jumplist_for_move('move_left_sibling')
+  jump_to_node(target_node)
+  add_jumplist_for_move('move_left_sibling')
 end
 
 return M
